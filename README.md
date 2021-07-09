@@ -7,7 +7,7 @@ Sources:
   https://www.tensorflow.org/tutorials/keras/overfit_and_underfit  
   https://machinelearningmastery.com/regression-tutorial-keras-deep-learning-library-python/  
 
-The predictions are in .csv format in the main Neural Network folder. I suggest to use predictions_alldata_formatted, or predictions_toyotacovid_formatted.
+The predictions are in .csv format in the main Neural Network folder.
 
 The final model selected is in the ToyotaAll folder. This includes the Toyota dataset merged with all external data, 
 including: Covid-19 Information, $S&P 500 Index, $CARZ Exchange Traded Fund, and Monthly Employment Level of USA.
