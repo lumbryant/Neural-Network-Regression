@@ -1,11 +1,11 @@
 Author: Bryant Lum
 
-Sources:
-https://www.sicara.ai/blog/2019-14-07-determine-network-hyper-parameters-with-bayesian-optimization
-https://www.tensorflow.org/tutorials/keras/keras_tuner
-https://www.tensorflow.org/tutorials/keras/regression
-https://www.tensorflow.org/tutorials/keras/overfit_and_underfit
-https://machinelearningmastery.com/regression-tutorial-keras-deep-learning-library-python/
+Sources:  
+  https://www.sicara.ai/blog/2019-14-07-determine-network-hyper-parameters-with-bayesian-optimization
+  https://www.tensorflow.org/tutorials/keras/keras_tuner
+  https://www.tensorflow.org/tutorials/keras/regression
+  https://www.tensorflow.org/tutorials/keras/overfit_and_underfit
+  https://machinelearningmastery.com/regression-tutorial-keras-deep-learning-library-python/
 
 The predictions are in .csv format in the main Neural Network folder. I suggest to use predictions_alldata_formatted, or predictions_toyotacovid_formatted.
 
