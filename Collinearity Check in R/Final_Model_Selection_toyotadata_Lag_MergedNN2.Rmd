@@ -1,0 +1,218 @@
+---
+title: 'Toyota Data Neural Network '
+author: "Bryant Lum"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r}
+library(neuralnet)
+library(caTools)
+set.seed(12345)
+setwd("~/spring2021/Data 511")
+toyota <- read.csv('Merged_Data_with_lag_Lead_Sales.csv', header=TRUE)
+str(toyota)
+options(digits=9)
+
+head(toyota)
+```
+
+```{r}
+toyota = subset(toyota, toyota$Region != "Region 13")
+dim(toyota)
+
+toyota = subset(toyota, select = -(Month_Number))
+dim(toyota)                
+```
+
+
+```{r}
+# Formatting Data
+toyota$Week = as.Date(toyota$Week, format = "%Y-%m-%d")
+
+toyota[order(toyota$Week),]
+
+toyota$Model = as.factor(toyota$Model)
+toyota$Region = as.factor(toyota$Region)
+toyota$Week_of_Month = as.factor(toyota$Week_of_Month)
+
+```
+
+```{r}
+#Remove 0 columns
+library(dplyr)
+toyota = toyota[, colSums(toyota != 0) > 0]
+``` 
+
+```{r}
+colnames(toyota)
+```
+
+```{r}
+Y <- toyota$Sales
+
+normalize <- function(x){
+
+x <- as.numeric( as.character( x ))
+
+y <- (x-min(x, na.rm=TRUE))/
+    (max(x, na.rm=TRUE)-min(x, na.rm=TRUE))
+
+
+return(y)
+
+}
+
+MinMaxData <- as.data.frame(lapply(toyota, normalize))
+
+#Adding Categorical Variables back in
+MinMaxData$Week = toyota$Week
+MinMaxData$Model = toyota$Model
+MinMaxData$Region = toyota$Region
+MinMaxData$Week_of_Month = toyota$Week_of_Month
+
+
+
+
+
+
+head(MinMaxData)
+dim(MinMaxData)
+```
+
+```{r}
+str(MinMaxData)
+```
+
+
+```{r}
+colnames(MinMaxData)
+```
+
+
+```{r}
+library(MASS)
+library(car)
+# Stepwise AIC
+full.model <- lm(Sales ~ . , data = MinMaxData)
+stepwise.model <- stepAIC(full.model, direction = "both", 
+                      trace = FALSE)
+summary(stepwise.model)
+```
+
+```{r}
+
+# Create new stepwise model without collinearity issues ( Remove Website_Visits.Organic.TCOM )
+final_stepwise.model <- lm(Sales ~ Week + Model + Region + Website_Visits.Paid.BAT + 
+    CTA1.Paid.BAT + CTA2.Paid.BAT + Website_Visits.Paid.TCOM + 
+    CTA1.Organic.TCOM + CTA1.Paid.TCOM + CTA2.Organic.TCOM + 
+    CTA2.Paid.TCOM + Lead_Sales.Category_7 + Lead_Sales.Category_5 + 
+    Lead_Sales.Category_1 + Lead_Sales.Category_6 + Lead_Sales.Category_4 + 
+    Lead_Sales.Category_9 + Lead_Sales.Category_7_lag1 + Lead_Sales.Category_7_lag4 + 
+    Lead_Sales.Category_5_lag1 + Lead_Sales.Category_5_lag4 + 
+    Lead_Sales.Category_4_lag1 + Lead_Sales.Category_4_lag2 + 
+    Lead_Sales.Category_4_lag3 + Lead_Sales.Category_4_lag4 + 
+    Lead_Sales.Category_9_lag2 + Impressions.Connected_TV.Display + 
+    Impressions.Desktop.Display + Impressions.Mobile.Display + 
+    Qualified_Actions.Mobile.Display + Qualified_Actions.NA.Search + 
+    Qualified_Actions.NA.Social + Impressions.Connected_TV.Video + 
+    Impressions.Mobile.Video + Week_of_Month, data = MinMaxData)
+
+# Checking VIF of stepwise model
+car::vif(final_stepwise.model)
+```
+
+
+
+```{r}
+library(car)
+# Step Backward AIC
+str(MinMaxData)
+
+backward.model <- stepAIC(full.model, direction = "backward", 
+                      trace = FALSE)
+summary(backward.model)
+
+vif(backward.model)
+```
+
+
+```{r}
+# Create new backward model without collinearity issues (Website_Visits.Organic.TCOM)
+final_backward.model <- lm(Sales ~ Model + Region + CTA2.Paid.BAT + Website_Visits.Paid.TCOM + 
+    CTA1.Organic.TCOM + CTA1.Paid.TCOM + CTA2.Organic.TCOM + 
+    CTA2.Paid.TCOM + Lead_Sales.Category_7 + Lead_Sales.Category_5 + 
+    Lead_Sales.Category_6 + Lead_Sales.Category_4 + Lead_Sales.Category_9 + 
+    Lead_Sales.Category_7_lag2 + Lead_Sales.Category_5_lag1 + 
+    Lead_Sales.Category_5_lag3 + Lead_Sales.Category_4_lag2 + 
+    Lead_Sales.Category_4_lag3 + Lead_Sales.Category_4_lag4 + 
+    Lead_Sales.Category_9_lag1 + Lead_Sales.Category_9_lag2 + 
+    Impressions.Connected_TV.Display + Qualified_Actions.Desktop.Display + 
+    Qualified_Actions.Mobile.Display + Qualified_Actions.NA.Search + 
+    Qualified_Actions.NA.Social + Impressions.Connected_TV.Video + 
+    Impressions.Unknown_Platform.Video + Qualified_Actions.Mobile.Video + 
+    Week_of_Month + new_cases + new_deaths + people_fully_vaccinated +
+    SP_Open + SP_Low + SP_Close, 
+    data = MinMaxData)
+
+# Checking VIF of backward model
+car::vif(final_backward.model)
+
+```
+
+
+```{r}
+# MAPE(y_pred, y_true)
+library(MLmetrics)
+
+#stepwise.model
+stepwise.predictions <- predict(final_stepwise.model, test)
+MAPE(stepwise.predictions, test$Sales)
+
+#forward.model
+forward.predictions <- predict(final_forward.model, test)
+MAPE(forward.predictions, test$Sales)
+
+#backward.model 
+backward.predictions <- predict(final_backward.model, test)
+MAPE(final_backward.model$fitted.values,test$Sales)
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+library(neuralnet)
+library(tictoc)
+
+#Neural Network Input
+neuralm <- model.matrix( 
+  ~ Total_Sales + Week + Series_Family.AF + Series_Family.AH + Series_Family.AL + Series_Family.AR + Series_Family.AW + Impressions + Qualified.Actions + Website.Visits + CTA2 + CTA1, data = train )
+
+```
+
+```{r}
+#Neural Netwoirk
+tic()
+
+nn <- neuralnet(Total_Sales ~ Week + Series_Family.AF + Series_Family.AH + Series_Family.AL + Series_Family.AR + Series_Family.AW + Impressions + Qualified.Actions + Website.Visits + CTA2 + CTA1, data=neuralm,  hidden=c(4,2), err.fct = "sse", linear.output=FALSE)
+
+toc()
+
+plot(nn)
+nn$response
+dim(train)
+```
+
+```{r}
+
+```
+
+
